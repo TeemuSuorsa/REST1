@@ -1,0 +1,4 @@
+auto    car
+koira   dog
+kissa	cat
+hiiri	mouse

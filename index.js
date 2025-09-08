@@ -1,14 +1,12 @@
-/*let data = [
-  { id: 1, firstName: "Matti", lastName: "Ruohonen" },
-  { id: 2, firstName: "Teppo", lastName: "Ruohonen" },
-];*/
 let dictionary = [];
 const express = require("express");
 const fs = require("fs");
+const PORT = 3000;
+
 //const bodyParser = require("body-parser");
 /* const app = express().use(bodyParser.json()); //vanha tapa - ei enÃ¤Ã¤ voimassa. 
 kts. https://devdocs.io/express/ -> req.body*/
-var app = express();
+const app = express();
 app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,54 +39,52 @@ app.use(function (req, res, next) {
   next();
 });
 
-//Â GETÂ allÂ users
-app.get("/words", (req, res) => {
-  const data = fs.readFileSync("./sanakirja.txt", {
-    encoding: "utf8",
-    flag: "r",
-  });
-  //data:ssa on nyt koko tiedoston sisÃ¤ltÃ¶
-  /*tiedoston sisÃ¤ltÃ¶ pitÃ¤Ã¤ pÃ¤tkiÃ¤ ja tehdÃ¤ taulukko*/
-  const splitLines = data.split(/\r?\n/);
-  /*TÃ¤ssÃ¤ voisi kÃ¤ydÃ¤ silmukassa lÃ¤pi splitLines:ssa jokaisen rivin*/
-  splitLines.forEach((line) => {
-    const words = line.split(" "); //sanat taulukkoon words
-    console.log(words);
-    const word = {
-      fin: words[0],
-      eng: words[1],
-    };
-    dictionary.push(word);
-    console.log(dictionary);
-  });
+app.get("/haku", (req, res) => {
+  const hakusana = req.query.suomi?.toLowerCase();
+  if (!hakusana) {
+    return res.status(400).json({ virhe: "Anna parametriksi ?suomi=..." });
+  }
 
-  res.json(dictionary);
+  // Luetaan tiedosto ilman try-catchia (virhe kaataa prosessin)
+  const data = fs.readFileSync("./sanakirja.txt", { encoding: "utf8" });
+  console.log(data); // debuggaus
+
+  const splitLines = data.split(/\r?\n/);
+
+  for (const line of splitLines) {
+    const [fin, eng] = line.trim().split(/\s+/); // poistaa ylimääräiset välilyönnit/tabit
+    if (fin === hakusana) {
+      return res.json({ suomi: fin, englanti: eng });
+    }
+  }
+
+  res.status(404).json({ virhe: "Sanaa ei löytynyt" });
 });
-//Â GETÂ aÂ user
-/*app.get("/users/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const user = data.find((user) => user.id === id);
-  res.json(user ? user : { message: "NotÂ found" });
+
+app.post("/lisaa", (req, res) => {
+  const { fin, eng } = req.body;
+
+  if (!fin || !eng) {
+    return res
+      .status(400)
+      .json({ virhe: "Anna sekä suomenkielinen että englanninkielinen sana" });
+  }
+
+  // Luetaan vanha sisältö
+  let data = fs.readFileSync("./sanakirja.txt", { encoding: "utf8" });
+  if (data && !data.endsWith("\n")) {
+    data += "\n"; // varmistetaan että viimeisen rivin jälkeen on rivinvaihto
+  }
+
+  // Lisätään uusi rivi
+  data += `${fin}\t${eng}\n`;
+
+  // Kirjoitetaan koko tiedosto uudelleen
+  fs.writeFileSync("./sanakirja.txt", data, { encoding: "utf8" });
+
+  res.json({ viesti: "Sana lisätty onnistuneesti", suomi: fin, englanti: eng });
 });
-//Â ADDÂ aÂ user
-app.post("/users", (req, res) => {
-  const user = req.body;
-  data.push(user);
-  res.json(data);
-});
-//Â UPDATEÂ aÂ user
-app.put("/users/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const updatedUser = req.body;
-  data = data.map((user) => (user.id === id ? updatedUser : user));
-  res.json(data);
-});
-//Â DELETEÂ aÂ user
-app.delete("/users/:id", (req, res) => {
-  const id = Number(req.params.id);
-  data = data.filter((user) => user.id !== id);
-  res.json(data);
-});*/
-app.listen(3000, () => {
-  console.log("ServerÂ listeningÂ atÂ portÂ 3000");
+
+app.listen(PORT, () => {
+  console.log(`Palvelin käynnissä portissa ${PORT}`);
 });
