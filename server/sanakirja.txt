@@ -5,3 +5,4 @@ hiiri	mouse
 Apina	Monkey
 apina	monkey
 lammas	sheep
+näppäimistö	keyboard
