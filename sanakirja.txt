@@ -2,3 +2,6 @@ auto    car
 koira   dog
 kissa	cat
 hiiri	mouse
+Apina	Monkey
+apina	monkey
+lammas	sheep
